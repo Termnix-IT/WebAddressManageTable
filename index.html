@@ -169,91 +169,145 @@
   {
     "networks": [
       {
-        "id": "home-lan",
-        "cidr": "192.168.5.0/24",
+        "id": "core-lan",
+        "cidr": "192.168.1.0/24",
         "vlan_id": 1,
-        "gateway": "192.168.5.1",
+        "gateway": "192.168.1.1",
         "dhcp": {
           "enabled": true,
           "range": {
-            "start": "192.168.5.100",
-            "end": "192.168.5.199"
+            "start": "192.168.1.100",
+            "end": "192.168.1.199"
           }
         }
       },
       {
-      "id": "Routing-lan",
-      "cidr": "192.168.10.0/24",
-      "vlan_id": 10,
-      "gateway": "192.168.10.1"
+        "id": "server-lan",
+        "cidr": "192.168.10.0/24",
+        "vlan_id": 10,
+        "gateway": "192.168.10.1"
       },
       {
-      "id": "Raspberry-lan",
-      "cidr": "192.168.20.0/24",
-      "vlan_id": 20,
-      "gateway": "192.168.20.1"
+        "id": "iot-lan",
+        "cidr": "192.168.20.0/24",
+        "vlan_id": 20,
+        "gateway": "192.168.20.1",
+        "dhcp": {
+          "enabled": true,
+          "range": {
+            "start": "192.168.20.100",
+            "end": "192.168.20.199"
+          }
+        }
       },
       {
-      "id": "home-WiFi-guest-lan",
-      "cidr": "192.168.30.0/24",
-      "vlan_id": 30,
-      "gateway": "192.168.30.1"
+        "id": "guest-lan",
+        "cidr": "192.168.30.0/24",
+        "vlan_id": 30,
+        "gateway": "192.168.30.1",
+        "dhcp": {
+          "enabled": true,
+          "range": {
+            "start": "192.168.30.100",
+            "end": "192.168.30.199"
+          }
+        }
       },
       {
-      "id": "Test-Environment-lan",
-      "cidr": "192.168.40.0/24",
-      "vlan_id": 40,
-      "gateway": "192.168.40.1"
+        "id": "mgmt-lan",
+        "cidr": "192.168.99.0/24",
+        "vlan_id": 99,
+        "gateway": "192.168.99.1"
       }
     ],
     "hosts": [
       {
-        "ip": "192.168.5.1",
-        "name": "Archer AX23",
-        "role": "WiFi-Router",
-        "network_id": "home-lan",
-        "assign": "static",
-        "note": "GW / Wi-Fi AP"
-      },
-      {
-        "ip": "192.168.5.2",
-        "name": "ER605",
+        "ip": "192.168.1.1",
+        "name": "Core-Router",
         "role": "L3-Router",
-        "network_id": "Routing-lan",
+        "network_id": "core-lan",
         "assign": "static",
-        "note": "VLAN間ルーティング"
+        "note": "GW / VLAN間ルーティング"
       },
       {
-        "ip": "192.168.5.5",
-        "name": "Windows-PC",
-        "role": "Main-PC_Desktop",
-        "network_id": "home-lan",
+        "ip": "192.168.1.2",
+        "name": "AP-01",
+        "role": "WiFi-AP",
+        "network_id": "core-lan",
         "assign": "static",
-        "note": "メインPC（デスクトップ）"
+        "note": "2.4GHz / 5GHz"
       },
       {
-        "ip": "192.168.5.9",
-        "name": "iiyama-NotePC",
-        "role": "Ubuntu-Server-PC",
-        "network_id": "home-lan",
+        "ip": "192.168.1.10",
+        "name": "Desktop-PC",
+        "role": "Main-PC",
+        "network_id": "core-lan",
         "assign": "static",
-        "note": "Linuxサーバー"
+        "note": "メイン作業機"
+      },
+      {
+        "ip": "192.168.1.11",
+        "name": "Note-PC",
+        "role": "Sub-PC",
+        "network_id": "core-lan",
+        "assign": "static",
+        "note": "モバイル作業機"
+      },
+      {
+        "ip": "192.168.1.150",
+        "name": "SmartPhone-01",
+        "role": "Mobile",
+        "network_id": "core-lan",
+        "assign": "dhcp",
+        "note": ""
       },
       {
         "ip": "192.168.10.2",
-        "name": "TL-SG108E",
+        "name": "L2-Switch-01",
         "role": "L2-Switch",
-        "network_id": "Switch-lan",
+        "network_id": "server-lan",
         "assign": "static",
         "note": "VLAN trunk / access"
       },
       {
-        "ip": "192.168.20.100",
-        "name": "Raspberry-Pi",
-        "role": "Mini-Server",
-        "network_id": "Raspberry-lan",
+        "ip": "192.168.10.10",
+        "name": "Linux-Server",
+        "role": "Home-Server",
+        "network_id": "server-lan",
         "assign": "static",
-        "note": "Zabbix / SMB"
+        "note": "監視 / ファイル共有"
+      },
+      {
+        "ip": "192.168.10.11",
+        "name": "NAS-01",
+        "role": "NAS",
+        "network_id": "server-lan",
+        "assign": "static",
+        "note": "バックアップ用"
+      },
+      {
+        "ip": "192.168.20.101",
+        "name": "SmartTV-01",
+        "role": "IoT-Device",
+        "network_id": "iot-lan",
+        "assign": "dhcp",
+        "note": ""
+      },
+      {
+        "ip": "192.168.20.102",
+        "name": "IP-Camera-01",
+        "role": "IoT-Device",
+        "network_id": "iot-lan",
+        "assign": "static",
+        "note": "屋内カメラ"
+      },
+      {
+        "ip": "192.168.99.2",
+        "name": "SW-Mgmt",
+        "role": "L2-Switch",
+        "network_id": "mgmt-lan",
+        "assign": "static",
+        "note": "管理インターフェース"
       }
     ]
   }
