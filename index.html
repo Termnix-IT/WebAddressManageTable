@@ -1,60 +1,169 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IPアドレス検索ツール</title>
+  <title>アドレス管理表</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <h1>アドレス管理表</h1>
+  <div class="bg-grid" aria-hidden="true"></div>
 
-    <section class="search-panel" aria-label="検索">
-      <label for="ipInput">検索ワード</label>
-      <div class="search-row">
-        <input id="ipInput" type="text" placeholder="例: 192.168.30.10 / Archer / static" autocomplete="off">
-        <button id="searchButton" type="button">検索</button>
-        <button id="clearButton" type="button">クリア</button>
-      </div>
-      <p id="statusText" class="status" role="status" aria-live="polite"></p>
-    </section>
+  <main class="app-shell">
+    <section class="panel panel-flow" aria-label="一覧">
+      <div class="content-block content-block-intro">
+        <div class="section-heading section-heading-app">
+          <div class="app-heading">
+            <p class="eyebrow">Address Registry</p>
+            <h1>ネットワークアドレス管理</h1>
+            <p class="app-heading-note">Search / Filter / Hosts View</p>
+          </div>
+          <div class="toolbar-summary" aria-label="集計">
+            <span class="summary-item">
+              <span class="summary-label">Subnets</span>
+              <strong id="networkCount">0</strong>
+            </span>
+            <span class="summary-sep" aria-hidden="true"></span>
+            <span class="summary-item">
+              <span class="summary-label">Hosts</span>
+              <strong id="hostCount">0</strong>
+            </span>
+            <span class="summary-sep" aria-hidden="true"></span>
+            <span class="summary-item">
+              <span class="summary-label">Static</span>
+              <strong id="staticCount">0</strong>
+            </span>
+            <button id="addHostBtn" class="btn-add" type="button">
+              <span class="btn-add-icon" aria-hidden="true">+</span>
+              Add Host
+            </button>
+          </div>
+        </div>
 
-    <section aria-label="一覧">
-      <h2>サブネット一覧</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>サブネットアドレス</th>
-              <th>VLAN有無</th>
-              <th>VLAN番号</th>
-            </tr>
-          </thead>
-          <tbody id="subnetBody"></tbody>
-        </table>
+        <div class="toolbar" aria-label="検索と絞り込み">
+          <div class="toolbar-main">
+            <label class="field-label" for="ipInput">検索ワード</label>
+            <div class="search-row">
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true">⌕</span>
+                <input id="ipInput" type="text" placeholder="例: 192.168.30.10 / Archer / static" autocomplete="off">
+              </div>
+              <button id="clearButton" type="button" class="ghost-button">クリア</button>
+            </div>
+          </div>
+
+          <div class="toolbar-side">
+            <p class="field-label">ネットワーク</p>
+            <div id="networkFilters" class="network-filters" aria-label="ネットワーク絞り込み"></div>
+          </div>
+
+          <p id="statusText" class="status" role="status" aria-live="polite"></p>
+        </div>
       </div>
-    </section>
-<br>
-    <section aria-label="一覧">
-      <h2>hosts 一覧</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>IP</th>
-              <th>名称</th>
-              <th>役割</th>
-              <th>ネットワークID</th>
-              <th>割当</th>
-              <th>メモ</th>
-            </tr>
-          </thead>
-          <tbody id="resultBody"></tbody>
-        </table>
+
+      <div class="content-block">
+        <div class="section-heading">
+          <div>
+            <h2>サブネット</h2>
+          </div>
+          <p class="section-meta">Networks</p>
+        </div>
+
+        <div class="subnet-strip-wrap">
+          <div id="subnetBody" class="subnet-strip" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="content-block">
+        <div class="section-heading section-heading-primary">
+          <div>
+            <h2>hosts 一覧</h2>
+          </div>
+          <p id="resultMeta" class="section-meta">0 件を表示中</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="ip">IP</th>
+                <th data-sort="name">名称</th>
+                <th data-sort="role">役割</th>
+                <th data-sort="network_id">ネットワークID</th>
+                <th data-sort="assign">割当</th>
+                <th>メモ</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
+
+  <!-- ホスト追加・編集モーダル -->
+  <div id="hostModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="hostModalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title" id="hostModalTitle">ホストを追加</h2>
+        <button type="button" class="modal-close" id="hostModalClose" aria-label="閉じる">✕</button>
+      </div>
+      <form id="hostForm" novalidate>
+        <div class="modal-grid">
+          <div class="modal-field">
+            <label class="field-label" for="fIp">IP アドレス</label>
+            <input type="text" id="fIp" class="modal-input" placeholder="192.168.5.10" autocomplete="off">
+            <span id="fIpError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fName">名称</label>
+            <input type="text" id="fName" class="modal-input" placeholder="Raspberry-Pi" autocomplete="off">
+            <span id="fNameError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fRole">役割</label>
+            <input type="text" id="fRole" class="modal-input" placeholder="Mini-Server" autocomplete="off">
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fNetworkId">ネットワークID</label>
+            <select id="fNetworkId" class="modal-select"></select>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fAssign">割当</label>
+            <select id="fAssign" class="modal-select">
+              <option value="static">static</option>
+              <option value="dhcp">dhcp</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label class="field-label" for="fNote">メモ</label>
+          <textarea id="fNote" class="modal-textarea" placeholder="任意のメモ"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="hostModalCancel" class="ghost-button">キャンセル</button>
+          <button type="submit" id="hostModalSave" class="btn-primary">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 削除確認ダイアログ -->
+  <div id="confirmDialog" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-box modal-box--sm">
+      <div class="modal-danger-icon" aria-hidden="true">⚠</div>
+      <h2 class="modal-title" id="confirmTitle">ホストを削除</h2>
+      <p class="confirm-text" id="confirmText">このホストを削除しますか？この操作は元に戻せません。</p>
+      <div class="modal-actions">
+        <button type="button" id="confirmCancelBtn" class="ghost-button">キャンセル</button>
+        <button type="button" id="confirmOkBtn" class="btn-danger">削除する</button>
+      </div>
+    </div>
+  </div>
 
   <script id="ipData" type="application/json">
   {
@@ -104,7 +213,15 @@
         "role": "WiFi-Router",
         "network_id": "home-lan",
         "assign": "static",
-        "note": "固定IP"
+        "note": "GW / Wi-Fi AP"
+      },
+      {
+        "ip": "192.168.5.2",
+        "name": "ER605",
+        "role": "L3-Router",
+        "network_id": "Routing-lan",
+        "assign": "static",
+        "note": "VLAN間ルーティング"
       },
       {
         "ip": "192.168.5.5",
@@ -112,7 +229,7 @@
         "role": "Main-PC_Desktop",
         "network_id": "home-lan",
         "assign": "static",
-        "note": "固定IP"
+        "note": "メインPC（デスクトップ）"
       },
       {
         "ip": "192.168.5.9",
@@ -120,7 +237,15 @@
         "role": "Ubuntu-Server-PC",
         "network_id": "home-lan",
         "assign": "static",
-        "note": "固定IP"
+        "note": "Linuxサーバー"
+      },
+      {
+        "ip": "192.168.10.2",
+        "name": "TL-SG108E",
+        "role": "L2-Switch",
+        "network_id": "Switch-lan",
+        "assign": "static",
+        "note": "VLAN trunk / access"
       },
       {
         "ip": "192.168.20.100",
@@ -128,7 +253,7 @@
         "role": "Mini-Server",
         "network_id": "Raspberry-lan",
         "assign": "static",
-        "note": "固定IP"
+        "note": "Zabbix / SMB"
       }
     ]
   }
