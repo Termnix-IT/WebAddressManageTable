@@ -449,7 +449,6 @@ body {
 
 /* Force grid placement for direct content children */
 .section .filters-strip,
-.section .subnet-strip,
 .section .table-wrap,
 .section .section-head { grid-column: 2; }
 
@@ -586,6 +585,12 @@ button {
   border-color: var(--accent);
 }
 
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ── Filter chips → subdued text links ─────── */
 .network-filters {
   display: flex;
@@ -621,73 +626,6 @@ button {
 .status {
   margin-top: 4px;
   color: var(--muted);
-}
-
-/* ── Subnet grid ────────────────────────────── */
-.subnet-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 0;
-  border-top: 1px solid var(--rule-ink);
-}
-
-.subnet-card {
-  display: grid;
-  gap: 14px;
-  padding: 22px 22px 24px 0;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-}
-
-.subnet-card:not(:first-child) { padding-left: 22px; }
-
-.subnet-card-id {
-  margin: 0;
-  font-family: var(--font-display);
-  font-variation-settings: "opsz" 80;
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-}
-
-.subnet-card-cidr {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-  letter-spacing: 0.03em;
-}
-
-.subnet-card-meta {
-  display: grid;
-  gap: 10px;
-  margin: 4px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-}
-
-.subnet-card-meta div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.subnet-card-meta dt {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted-soft);
-}
-
-.subnet-card-meta dd {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--ink);
 }
 
 /* ── Table ──────────────────────────────────── */
@@ -746,8 +684,8 @@ td {
 td:first-child { padding-left: 0; }
 td:last-child { padding-right: 0; text-align: right; }
 
-/* IP column — mono */
-td:first-child {
+/* Hosts: IP column — mono */
+.section-hosts td:first-child {
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.02em;
@@ -755,8 +693,8 @@ td:first-child {
   white-space: nowrap;
 }
 
-/* Name column — display serif */
-td:nth-child(2) {
+/* Hosts: Name column — display serif */
+.section-hosts td:nth-child(2) {
   font-family: var(--font-display);
   font-variation-settings: "opsz" 36;
   font-size: 15px;
@@ -764,24 +702,53 @@ td:nth-child(2) {
   letter-spacing: -0.005em;
 }
 
-/* Role column */
-td:nth-child(3) {
+/* Hosts: Role column */
+.section-hosts td:nth-child(3) {
   color: var(--ink-soft);
 }
 
-/* Network ID column */
-td:nth-child(4) {
+/* Hosts: Network ID column */
+.section-hosts td:nth-child(4) {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--muted);
   letter-spacing: 0.03em;
 }
 
-/* Note column — muted */
-td:nth-child(6) {
+/* Hosts: Note column — muted */
+.section-hosts td:nth-child(6) {
   color: var(--muted);
   font-size: 12px;
   max-width: 220px;
+}
+
+/* Subnets: ID column — display serif */
+.section-subnets td:first-child {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 36;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+/* Subnets: CIDR / Gateway — mono */
+.section-subnets td:nth-child(2),
+.section-subnets td:nth-child(3) {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.dhcp-range {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 tbody tr {
@@ -1103,6 +1070,35 @@ tbody tr:last-child td { border-bottom: 0; }
 
 .modal-error.is-visible { display: block; }
 
+.modal-field-check {
+  margin-top: 4px;
+}
+
+.field-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.field-check input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+.modal-input:disabled {
+  color: var(--muted-soft);
+  border-bottom-color: var(--rule-strong);
+  cursor: not-allowed;
+}
+
 /* ── Focus ──────────────────────────────────── */
 button:focus-visible,
 input:focus-visible,
@@ -1145,7 +1141,6 @@ textarea:focus-visible {
     padding-top: 0;
   }
   .section .filters-strip,
-  .section .subnet-strip,
   .section .table-wrap,
   .section .section-head,
   .section-label { grid-column: 1; }
@@ -1163,7 +1158,7 @@ textarea:focus-visible {
     padding: 12px 0;
   }
   .topbar-mark { grid-area: mark; padding-right: 0; border-right: 0; }
-  #addHostBtn { grid-area: add; }
+  .topbar-actions { grid-area: add; }
   .topbar-search { grid-area: search; padding-left: 0; border-left: 0; }
 }
 
@@ -1174,13 +1169,6 @@ textarea:focus-visible {
 
   .filters-strip { gap: 10px 14px; }
   .filters-strip-status { margin-left: 0; flex-basis: 100%; }
-
-  .subnet-strip { grid-template-columns: 1fr; }
-  .subnet-card,
-  .subnet-card:not(:first-child) {
-    padding: 22px 0;
-    border-right: 0;
-  }
 
   table { min-width: 720px; }
 

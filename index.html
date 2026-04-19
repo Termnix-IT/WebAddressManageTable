@@ -38,7 +38,10 @@
         <button id="clearButton" type="button" class="ghost-button ghost-button-sm">クリア</button>
       </div>
 
-      <button id="addHostBtn" class="btn-add" type="button">+ Add host</button>
+      <div class="topbar-actions">
+        <button id="addHostBtn" class="btn-add" type="button">+ Add host</button>
+        <button id="addSubnetBtn" class="btn-add" type="button">+ Add subnet</button>
+      </div>
     </div>
   </nav>
 
@@ -83,8 +86,24 @@
       <div class="section-head">
         <p class="section-label">Subnets</p>
         <h2 class="section-title">サブネット</h2>
+        <p id="subnetResultMeta" class="section-meta">0 件</p>
       </div>
-      <div id="subnetBody" class="subnet-strip" aria-live="polite"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>CIDR</th>
+              <th>Gateway</th>
+              <th>VLAN</th>
+              <th>DHCP</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="subnetBody" aria-live="polite"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="section section-hosts is-hidden-view" data-sec="N°02" data-view-section="hosts" aria-label="ホスト一覧">
@@ -165,6 +184,61 @@
         <div class="modal-actions">
           <button type="button" id="hostModalCancel" class="ghost-button">キャンセル</button>
           <button type="submit" id="hostModalSave" class="btn-primary">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- サブネット追加・編集モーダル -->
+  <div id="subnetModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="subnetModalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title" id="subnetModalTitle">サブネットを追加</h2>
+        <button type="button" class="modal-close" id="subnetModalClose" aria-label="閉じる">✕</button>
+      </div>
+      <form id="subnetForm" novalidate>
+        <div class="modal-grid">
+          <div class="modal-field">
+            <label class="field-label" for="fSid">ID</label>
+            <input type="text" id="fSid" class="modal-input" placeholder="core-lan" autocomplete="off">
+            <span id="fSidError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fCidr">CIDR</label>
+            <input type="text" id="fCidr" class="modal-input" placeholder="192.168.1.0/24" autocomplete="off">
+            <span id="fCidrError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fGateway">Gateway</label>
+            <input type="text" id="fGateway" class="modal-input" placeholder="192.168.1.1" autocomplete="off">
+            <span id="fGatewayError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fVlan">VLAN 番号</label>
+            <input type="text" id="fVlan" class="modal-input" placeholder="空欄=なし / 0〜4094" autocomplete="off">
+            <span id="fVlanError" class="modal-error"></span>
+          </div>
+        </div>
+        <div class="modal-field modal-field-check">
+          <label class="field-check">
+            <input type="checkbox" id="fDhcpEnabled"> <span>DHCP を有効にする</span>
+          </label>
+        </div>
+        <div class="modal-grid">
+          <div class="modal-field">
+            <label class="field-label" for="fDhcpStart">DHCP 範囲 開始</label>
+            <input type="text" id="fDhcpStart" class="modal-input" placeholder="192.168.1.100" autocomplete="off" disabled>
+            <span id="fDhcpStartError" class="modal-error"></span>
+          </div>
+          <div class="modal-field">
+            <label class="field-label" for="fDhcpEnd">DHCP 範囲 終了</label>
+            <input type="text" id="fDhcpEnd" class="modal-input" placeholder="192.168.1.199" autocomplete="off" disabled>
+            <span id="fDhcpEndError" class="modal-error"></span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="subnetModalCancel" class="ghost-button">キャンセル</button>
+          <button type="submit" id="subnetModalSave" class="btn-primary">保存する</button>
         </div>
       </form>
     </div>

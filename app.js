@@ -14,8 +14,10 @@
   var hostCount = document.getElementById("hostCount");
   var staticCount = document.getElementById("staticCount");
   var addHostBtn = document.getElementById("addHostBtn");
+  var addSubnetBtn = document.getElementById("addSubnetBtn");
+  var subnetResultMeta = document.getElementById("subnetResultMeta");
 
-  // Modal elements
+  // Host modal elements
   var hostModal = document.getElementById("hostModal");
   var hostForm = document.getElementById("hostForm");
   var hostModalTitle = document.getElementById("hostModalTitle");
@@ -30,10 +32,31 @@
   var fIpError = document.getElementById("fIpError");
   var fNameError = document.getElementById("fNameError");
 
+  // Subnet modal elements
+  var subnetModal = document.getElementById("subnetModal");
+  var subnetForm = document.getElementById("subnetForm");
+  var subnetModalTitle = document.getElementById("subnetModalTitle");
+  var subnetModalCancel = document.getElementById("subnetModalCancel");
+  var subnetModalClose = document.getElementById("subnetModalClose");
+  var fSid = document.getElementById("fSid");
+  var fCidr = document.getElementById("fCidr");
+  var fGateway = document.getElementById("fGateway");
+  var fVlan = document.getElementById("fVlan");
+  var fDhcpEnabled = document.getElementById("fDhcpEnabled");
+  var fDhcpStart = document.getElementById("fDhcpStart");
+  var fDhcpEnd = document.getElementById("fDhcpEnd");
+  var fSidError = document.getElementById("fSidError");
+  var fCidrError = document.getElementById("fCidrError");
+  var fGatewayError = document.getElementById("fGatewayError");
+  var fVlanError = document.getElementById("fVlanError");
+  var fDhcpStartError = document.getElementById("fDhcpStartError");
+  var fDhcpEndError = document.getElementById("fDhcpEndError");
+
   var confirmDialog = document.getElementById("confirmDialog");
   var confirmCancelBtn = document.getElementById("confirmCancelBtn");
   var confirmOkBtn = document.getElementById("confirmOkBtn");
   var confirmText = document.getElementById("confirmText");
+  var confirmTitle = document.getElementById("confirmTitle");
 
   var dataModelAdapters = {
     hosts: {
@@ -48,18 +71,31 @@
     sortKey: "",
     sortDir: "asc",
     editingIp: null,
-    pendingDeleteIp: null
+    pendingDeleteIp: null,
+    editingSubnetId: null,
+    pendingDeleteSubnetId: null
   };
 
-  var allHosts = normalizeItems(data, dataModelAdapters.hosts);
-  var allSubnets = normalizeSubnets(data);
+  var stored = loadFromStorage();
+  var allHosts;
+  var allSubnets;
+  if (stored) {
+    allHosts = stored.hosts;
+    allSubnets = stored.subnets;
+  } else {
+    allHosts = normalizeItems(data, dataModelAdapters.hosts);
+    allSubnets = normalizeSubnets(data);
+  }
 
   renderSummary(allHosts, allSubnets);
   renderNetworkFilters(allSubnets);
-  renderSubnets(allSubnets);
+  initNetworkFilterEvents();
+  renderSubnetsTable();
   buildNetworkIdSelect();
   applyFilters();
   initViewSwitcher();
+
+  if (!stored) saveToStorage();
 
   // ── イベント: 検索・フィルタ ──
   ipInput.addEventListener("input", function () {
@@ -86,8 +122,8 @@
   });
 
   // ── イベント: ソート ──
-  var thead = document.querySelector("thead");
-  thead.addEventListener("click", function (event) {
+  var hostsThead = document.querySelector(".section-hosts thead");
+  hostsThead.addEventListener("click", function (event) {
     var th = event.target.closest("th[data-sort]");
     if (!th) return;
     var key = th.getAttribute("data-sort");
@@ -126,12 +162,28 @@
   });
 
   confirmOkBtn.addEventListener("click", function () {
-    if (state.pendingDeleteIp === null) return;
-    var idx = allHosts.findIndex(function (h) { return h.ip === state.pendingDeleteIp; });
-    if (idx !== -1) {
-      allHosts.splice(idx, 1);
-      renderSummary(allHosts, allSubnets);
-      applyFilters();
+    if (state.pendingDeleteIp !== null) {
+      var hIdx = allHosts.findIndex(function (h) { return h.ip === state.pendingDeleteIp; });
+      if (hIdx !== -1) {
+        allHosts.splice(hIdx, 1);
+        renderSummary(allHosts, allSubnets);
+        applyFilters();
+        saveToStorage();
+      }
+    } else if (state.pendingDeleteSubnetId !== null) {
+      var sIdx = allSubnets.findIndex(function (s) { return s.id === state.pendingDeleteSubnetId; });
+      if (sIdx !== -1) {
+        allSubnets.splice(sIdx, 1);
+        if (state.networkId === state.pendingDeleteSubnetId) {
+          state.networkId = "all";
+        }
+        renderSummary(allHosts, allSubnets);
+        renderSubnetsTable();
+        renderNetworkFilters(allSubnets);
+        buildNetworkIdSelect();
+        applyFilters();
+        saveToStorage();
+      }
     }
     closeConfirm();
   });
@@ -147,10 +199,43 @@
     }
   });
 
+  // ── イベント: Add Subnet ──
+  addSubnetBtn.addEventListener("click", function () {
+    openSubnetModal("add");
+  });
+
+  subnetModalCancel.addEventListener("click", closeSubnetModal);
+  subnetModalClose.addEventListener("click", closeSubnetModal);
+
+  subnetModal.addEventListener("click", function (event) {
+    if (event.target === subnetModal) closeSubnetModal();
+  });
+
+  subnetForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    saveSubnet();
+  });
+
+  fDhcpEnabled.addEventListener("change", function () {
+    syncDhcpFieldsDisabled();
+  });
+
+  // ── イベント: サブネット操作列 ──
+  subnetBody.addEventListener("click", function (event) {
+    var editBtn = event.target.closest(".btn-edit-subnet");
+    var deleteBtn = event.target.closest(".btn-delete-subnet");
+    if (editBtn) {
+      openSubnetModal("edit", editBtn.getAttribute("data-sid"));
+    } else if (deleteBtn) {
+      requestDeleteSubnet(deleteBtn.getAttribute("data-sid"));
+    }
+  });
+
   // ── ESC でモーダルを閉じる ──
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
       if (!hostModal.classList.contains("is-hidden")) closeModal();
+      if (!subnetModal.classList.contains("is-hidden")) closeSubnetModal();
       if (!confirmDialog.classList.contains("is-hidden")) closeConfirm();
     }
   });
@@ -308,6 +393,8 @@
 
   function openConfirm(ip) {
     state.pendingDeleteIp = ip;
+    state.pendingDeleteSubnetId = null;
+    if (confirmTitle) confirmTitle.textContent = "ホストを削除";
     confirmText.textContent = ip + " を削除しますか？この操作は元に戻せません。";
     confirmDialog.classList.remove("is-hidden");
   }
@@ -315,30 +402,84 @@
   function closeConfirm() {
     confirmDialog.classList.add("is-hidden");
     state.pendingDeleteIp = null;
+    state.pendingDeleteSubnetId = null;
+  }
+
+  // ────────────────────────────────────────
+  // IP / CIDR 検証ヘルパー
+  // ────────────────────────────────────────
+
+  function isValidIpv4(value) {
+    if (typeof value !== "string") return false;
+    var m = value.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (!m) return false;
+    for (var i = 1; i <= 4; i++) {
+      var n = Number(m[i]);
+      if (!(n >= 0 && n <= 255)) return false;
+    }
+    return true;
+  }
+
+  function ipToInt(ip) {
+    var parts = ip.split(".").map(Number);
+    return (((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0);
+  }
+
+  function parseCidr(cidr) {
+    if (typeof cidr !== "string") return null;
+    var m = cidr.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
+    if (!m) return null;
+    if (!isValidIpv4(m[1])) return null;
+    var prefix = Number(m[2]);
+    if (!(prefix >= 0 && prefix <= 32)) return null;
+    var ipInt = ipToInt(m[1]);
+    var mask = prefix === 0 ? 0 : ((0xFFFFFFFF << (32 - prefix)) >>> 0);
+    return {
+      prefix: prefix,
+      mask: mask,
+      network: (ipInt & mask) >>> 0
+    };
+  }
+
+  function isValidCidr(value) {
+    return parseCidr(value) !== null;
+  }
+
+  function ipInCidr(ip, parsed) {
+    if (!parsed || !isValidIpv4(ip)) return false;
+    return ((ipToInt(ip) & parsed.mask) >>> 0) === parsed.network;
   }
 
   // ────────────────────────────────────────
   // CRUD: 保存
   // ────────────────────────────────────────
 
-  var IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
-
   function saveHost() {
     clearModalErrors();
     var ipVal = fIp.value.trim();
     var nameVal = fName.value.trim();
+    var networkIdVal = fNetworkId.value;
     var valid = true;
 
-    if (!IP_RE.test(ipVal)) {
-      showError(fIpError, "正しいIPv4アドレスを入力してください");
+    if (!isValidIpv4(ipVal)) {
+      showError(fIpError, "正しい IPv4 アドレスを入力してください (各オクテット 0〜255)");
       valid = false;
+    } else {
+      var selectedSubnet = allSubnets.find(function (s) { return s.id === networkIdVal; });
+      if (selectedSubnet) {
+        var parsed = parseCidr(selectedSubnet.subnet);
+        if (parsed && !ipInCidr(ipVal, parsed)) {
+          showError(fIpError, ipVal + " はサブネット " + selectedSubnet.id + " (" + selectedSubnet.subnet + ") の範囲外です");
+          valid = false;
+        }
+      }
     }
 
     if (state.editingIp === null) {
       // 新規: IP重複チェック
       var duplicate = allHosts.some(function (h) { return h.ip === ipVal; });
       if (duplicate) {
-        showError(fIpError, "このIPアドレスはすでに登録されています");
+        showError(fIpError, "この IP アドレスはすでに登録されています");
         valid = false;
       }
     }
@@ -371,6 +512,7 @@
     closeModal();
     renderSummary(allHosts, allSubnets);
     applyFilters();
+    saveToStorage();
   }
 
   function clearModalErrors() {
@@ -383,6 +525,178 @@
   function showError(el, message) {
     el.textContent = message;
     el.classList.add("is-visible");
+  }
+
+  // ────────────────────────────────────────
+  // CRUD: サブネット
+  // ────────────────────────────────────────
+
+  function openSubnetModal(mode, id) {
+    clearSubnetModalErrors();
+    if (mode === "add") {
+      state.editingSubnetId = null;
+      subnetModalTitle.textContent = "サブネットを追加";
+      subnetForm.reset();
+      fSid.disabled = false;
+      syncDhcpFieldsDisabled();
+    } else {
+      state.editingSubnetId = id;
+      subnetModalTitle.textContent = "サブネットを編集";
+      var subnet = allSubnets.find(function (s) { return s.id === id; });
+      if (!subnet) return;
+      fSid.value = subnet.id;
+      fSid.disabled = true;
+      fCidr.value = subnet.subnet;
+      fGateway.value = subnet.gateway === "-" ? "" : subnet.gateway;
+      fVlan.value = subnet.vlan;
+      fDhcpEnabled.checked = subnet.dhcpEnabled;
+      fDhcpStart.value = subnet.dhcpStart;
+      fDhcpEnd.value = subnet.dhcpEnd;
+      syncDhcpFieldsDisabled();
+    }
+    subnetModal.classList.remove("is-hidden");
+    (state.editingSubnetId === null ? fSid : fCidr).focus();
+  }
+
+  function closeSubnetModal() {
+    subnetModal.classList.add("is-hidden");
+    state.editingSubnetId = null;
+  }
+
+  function syncDhcpFieldsDisabled() {
+    var on = fDhcpEnabled.checked;
+    fDhcpStart.disabled = !on;
+    fDhcpEnd.disabled = !on;
+    if (!on) {
+      fDhcpStart.value = "";
+      fDhcpEnd.value = "";
+      clearFieldError(fDhcpStartError);
+      clearFieldError(fDhcpEndError);
+    }
+  }
+
+  function saveSubnet() {
+    clearSubnetModalErrors();
+    var idVal = fSid.value.trim();
+    var cidrVal = fCidr.value.trim();
+    var gatewayVal = fGateway.value.trim();
+    var vlanVal = fVlan.value.trim();
+    var dhcpOn = fDhcpEnabled.checked;
+    var startVal = fDhcpStart.value.trim();
+    var endVal = fDhcpEnd.value.trim();
+    var valid = true;
+
+    if (state.editingSubnetId === null) {
+      if (!idVal) {
+        showError(fSidError, "ID を入力してください");
+        valid = false;
+      } else if (allSubnets.some(function (s) { return s.id === idVal; })) {
+        showError(fSidError, "この ID はすでに登録されています");
+        valid = false;
+      }
+    }
+
+    var parsedCidr = null;
+    if (!isValidCidr(cidrVal)) {
+      showError(fCidrError, "正しい CIDR 形式で入力してください (例: 192.168.1.0/24)");
+      valid = false;
+    } else {
+      parsedCidr = parseCidr(cidrVal);
+    }
+
+    if (gatewayVal) {
+      if (!isValidIpv4(gatewayVal)) {
+        showError(fGatewayError, "正しい IPv4 アドレスを入力してください (各オクテット 0〜255)");
+        valid = false;
+      } else if (parsedCidr && !ipInCidr(gatewayVal, parsedCidr)) {
+        showError(fGatewayError, "Gateway が CIDR 範囲外です");
+        valid = false;
+      }
+    }
+
+    if (vlanVal !== "") {
+      var vn = Number(vlanVal);
+      if (!/^\d+$/.test(vlanVal) || vn < 0 || vn > 4094) {
+        showError(fVlanError, "0〜4094 の整数を入力してください");
+        valid = false;
+      }
+    }
+
+    if (dhcpOn) {
+      var startOk = isValidIpv4(startVal);
+      var endOk = isValidIpv4(endVal);
+      if (!startOk) {
+        showError(fDhcpStartError, "正しい IPv4 アドレスを入力してください (各オクテット 0〜255)");
+        valid = false;
+      } else if (parsedCidr && !ipInCidr(startVal, parsedCidr)) {
+        showError(fDhcpStartError, "DHCP 開始が CIDR 範囲外です");
+        valid = false;
+      }
+      if (!endOk) {
+        showError(fDhcpEndError, "正しい IPv4 アドレスを入力してください (各オクテット 0〜255)");
+        valid = false;
+      } else if (parsedCidr && !ipInCidr(endVal, parsedCidr)) {
+        showError(fDhcpEndError, "DHCP 終了が CIDR 範囲外です");
+        valid = false;
+      }
+      if (startOk && endOk && ipToInt(startVal) > ipToInt(endVal)) {
+        showError(fDhcpEndError, "終了アドレスは開始アドレス以上にしてください");
+        valid = false;
+      }
+    }
+
+    if (!valid) return;
+
+    var normalizedVlan = vlanVal;
+    var newSubnet = {
+      id: state.editingSubnetId === null ? idVal : state.editingSubnetId,
+      subnet: cidrVal,
+      gateway: gatewayVal || "-",
+      vlan: normalizedVlan,
+      vlanLabel: normalizedVlan !== "" ? "VLAN " + normalizedVlan : "なし",
+      hasVlan: normalizedVlan !== "",
+      dhcpEnabled: dhcpOn,
+      dhcpStart: dhcpOn ? startVal : "",
+      dhcpEnd: dhcpOn ? endVal : ""
+    };
+
+    if (state.editingSubnetId === null) {
+      allSubnets.push(newSubnet);
+    } else {
+      var idx = allSubnets.findIndex(function (s) { return s.id === state.editingSubnetId; });
+      if (idx !== -1) allSubnets[idx] = newSubnet;
+    }
+
+    closeSubnetModal();
+    renderSummary(allHosts, allSubnets);
+    renderSubnetsTable();
+    renderNetworkFilters(allSubnets);
+    buildNetworkIdSelect();
+    applyFilters();
+    saveToStorage();
+  }
+
+  function requestDeleteSubnet(id) {
+    var linkedCount = allHosts.filter(function (h) { return h.network_id === id; }).length;
+    if (linkedCount > 0) {
+      window.alert(id + " には " + linkedCount + " 件のホストが紐付いているため削除できません。\n先にホストを削除するか、別のサブネットへ移動してください。");
+      return;
+    }
+    state.pendingDeleteSubnetId = id;
+    state.pendingDeleteIp = null;
+    if (confirmTitle) confirmTitle.textContent = "サブネットを削除";
+    confirmText.textContent = id + " を削除しますか？この操作は元に戻せません。";
+    confirmDialog.classList.remove("is-hidden");
+  }
+
+  function clearSubnetModalErrors() {
+    [fSidError, fCidrError, fGatewayError, fVlanError, fDhcpStartError, fDhcpEndError].forEach(clearFieldError);
+  }
+
+  function clearFieldError(el) {
+    if (!el) return;
+    el.textContent = "";
+    el.classList.remove("is-visible");
   }
 
   // ────────────────────────────────────────
@@ -400,6 +714,35 @@
     } catch (_error) {
       setStatus("データ読込に失敗しました。JSON形式を確認してください。");
       return { networks: [], hosts: [] };
+    }
+  }
+
+  // ────────────────────────────────────────
+  // LocalStorage 永続化
+  // ────────────────────────────────────────
+
+  var STORAGE_KEY = "nar:v1";
+
+  function loadFromStorage() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.hosts) || !Array.isArray(parsed.subnets)) return null;
+      return parsed;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function saveToStorage() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        hosts: allHosts,
+        subnets: allSubnets
+      }));
+    } catch (_error) {
+      // quota 超過 / プライベートモード 等 — 静かに無視
     }
   }
 
@@ -426,13 +769,19 @@
 
     return model.networks.map(function (network) {
       var vlanNumber = readVlanNumber(network);
+      var dhcp = (network && network.dhcp && typeof network.dhcp === "object") ? network.dhcp : null;
+      var dhcpRange = (dhcp && dhcp.range && typeof dhcp.range === "object") ? dhcp.range : null;
 
       return {
         id: network && network.id ? String(network.id) : "",
         subnet: network && network.cidr ? String(network.cidr) : "",
         gateway: network && network.gateway ? String(network.gateway) : "-",
+        vlan: vlanNumber,
         vlanLabel: vlanNumber !== "" ? "VLAN " + vlanNumber : "なし",
-        hasVlan: vlanNumber !== ""
+        hasVlan: vlanNumber !== "",
+        dhcpEnabled: !!(dhcp && dhcp.enabled),
+        dhcpStart: dhcpRange && dhcpRange.start ? String(dhcpRange.start) : "",
+        dhcpEnd: dhcpRange && dhcpRange.end ? String(dhcpRange.end) : ""
       };
     });
   }
@@ -485,18 +834,21 @@
   }
 
   function renderNetworkFilters(subnets) {
-    var buttons = ['<button type="button" class="filter-chip is-active" data-network-id="all">すべて</button>'];
+    var buttons = ['<button type="button" class="filter-chip' + (state.networkId === "all" ? " is-active" : "") + '" data-network-id="all">すべて</button>'];
 
     subnets.forEach(function (subnet) {
+      var activeCls = state.networkId === subnet.id ? " is-active" : "";
       buttons.push(
-        '<button type="button" class="filter-chip" data-network-id="' + escapeHtml(subnet.id) + '">' +
+        '<button type="button" class="filter-chip' + activeCls + '" data-network-id="' + escapeHtml(subnet.id) + '">' +
         escapeHtml(subnet.id || subnet.subnet) +
         "</button>"
       );
     });
 
     networkFilters.innerHTML = buttons.join("");
+  }
 
+  function initNetworkFilterEvents() {
     networkFilters.addEventListener("click", function (event) {
       var button = event.target.closest("[data-network-id]");
       if (!button) {
@@ -518,26 +870,51 @@
     });
   }
 
-  function renderSubnets(rows) {
-    if (!Array.isArray(rows) || rows.length === 0) {
-      subnetBody.innerHTML = '<p class="empty">データがありません</p>';
+  function renderSubnetsTable() {
+    if (!Array.isArray(allSubnets) || allSubnets.length === 0) {
+      subnetBody.innerHTML = '<tr><td colspan="6" class="empty">— サブネットが登録されていません —</td></tr>';
+      updateSubnetMeta();
       return;
     }
 
-    var html = rows
+    var html = allSubnets
       .map(function (row) {
-        return '<article class="subnet-card">' +
-          '<p class="subnet-card-id">' + escapeHtml(row.id) + "</p>" +
-          '<p class="subnet-card-cidr">' + escapeHtml(row.subnet) + "</p>" +
-          '<dl class="subnet-card-meta">' +
-          '<div><dt>Gateway</dt><dd>' + escapeHtml(row.gateway) + "</dd></div>" +
-          '<div><dt>VLAN</dt><dd>' + renderBadge(row.vlanLabel, row.hasVlan ? "badge-vlan" : "badge-none") + "</dd></div>" +
-          "</dl>" +
-          "</article>";
+        var dhcpCell;
+        if (row.dhcpEnabled) {
+          var range = (row.dhcpStart && row.dhcpEnd) ? (" " + row.dhcpStart + "–" + row.dhcpEnd) : "";
+          dhcpCell = renderBadge("ON", "badge-assign-static") + '<span class="dhcp-range">' + escapeHtml(range) + "</span>";
+        } else {
+          dhcpCell = renderBadge("OFF", "badge-none");
+        }
+        return "<tr>" +
+          "<td>" + escapeHtml(row.id) + "</td>" +
+          "<td>" + escapeHtml(row.subnet) + "</td>" +
+          "<td>" + escapeHtml(row.gateway) + "</td>" +
+          "<td>" + renderBadge(row.vlanLabel, row.hasVlan ? "badge-vlan" : "badge-none") + "</td>" +
+          "<td>" + dhcpCell + "</td>" +
+          "<td>" +
+            '<button class="btn-icon btn-edit btn-edit-subnet" data-sid="' + escapeHtml(row.id) + '" type="button">編集</button>' +
+            '<button class="btn-icon btn-delete btn-delete-subnet" data-sid="' + escapeHtml(row.id) + '" type="button">削除</button>' +
+          "</td>" +
+          "</tr>";
       })
       .join("");
 
     subnetBody.innerHTML = html;
+
+    var trs = subnetBody.querySelectorAll("tr");
+    trs.forEach(function (tr, i) {
+      tr.classList.add("row-enter");
+      tr.style.animationDelay = (i * 38) + "ms";
+    });
+
+    updateSubnetMeta();
+  }
+
+  function updateSubnetMeta() {
+    if (subnetResultMeta) {
+      subnetResultMeta.textContent = allSubnets.length + " 件";
+    }
   }
 
   function filterByKeyword(items, query, columns) {
