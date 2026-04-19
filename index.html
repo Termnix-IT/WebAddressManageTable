@@ -6,103 +6,121 @@
   <title>アドレス管理表</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="bg-grid" aria-hidden="true"></div>
+  <nav class="topbar" aria-label="グローバルナビゲーション">
+    <div class="topbar-inner">
+      <a class="topbar-mark" href="#top">
+        <span class="topbar-mark-eyebrow">NAR / Vol.01</span>
+        <span class="topbar-mark-title">アドレス管理</span>
+      </a>
 
-  <main class="app-shell">
-    <section class="panel panel-flow" aria-label="一覧">
-      <div class="content-block content-block-intro">
-        <div class="section-heading section-heading-app">
-          <div class="app-heading">
-            <p class="eyebrow">Address Registry</p>
-            <h1>ネットワークアドレス管理</h1>
-            <p class="app-heading-note">Search / Filter / Hosts View</p>
-          </div>
-          <div class="toolbar-summary" aria-label="集計">
-            <span class="summary-item">
-              <span class="summary-label">Subnets</span>
-              <strong id="networkCount">0</strong>
-            </span>
-            <span class="summary-sep" aria-hidden="true"></span>
-            <span class="summary-item">
-              <span class="summary-label">Hosts</span>
-              <strong id="hostCount">0</strong>
-            </span>
-            <span class="summary-sep" aria-hidden="true"></span>
-            <span class="summary-item">
-              <span class="summary-label">Static</span>
-              <strong id="staticCount">0</strong>
-            </span>
-            <button id="addHostBtn" class="btn-add" type="button">
-              <span class="btn-add-icon" aria-hidden="true">+</span>
-              Add Host
-            </button>
-          </div>
-        </div>
-
-        <div class="toolbar" aria-label="検索と絞り込み">
-          <div class="toolbar-main">
-            <label class="field-label" for="ipInput">検索ワード</label>
-            <div class="search-row">
-              <div class="input-wrap">
-                <span class="input-icon" aria-hidden="true">⌕</span>
-                <input id="ipInput" type="text" placeholder="例: 192.168.30.10 / Archer / static" autocomplete="off">
-              </div>
-              <button id="clearButton" type="button" class="ghost-button">クリア</button>
-            </div>
-          </div>
-
-          <div class="toolbar-side">
-            <p class="field-label">ネットワーク</p>
-            <div id="networkFilters" class="network-filters" aria-label="ネットワーク絞り込み"></div>
-          </div>
-
-          <p id="statusText" class="status" role="status" aria-live="polite"></p>
-        </div>
+      <div class="topbar-metrics" aria-label="集計">
+        <span class="topbar-metric">
+          <strong id="networkCount">0</strong>
+          <span>Subnets</span>
+        </span>
+        <span class="topbar-metric">
+          <strong id="hostCount">0</strong>
+          <span>Hosts</span>
+        </span>
+        <span class="topbar-metric">
+          <strong id="staticCount">0</strong>
+          <span>Static</span>
+        </span>
       </div>
 
-      <div class="content-block">
-        <div class="section-heading">
-          <div>
-            <h2>サブネット</h2>
-          </div>
-          <p class="section-meta">Networks</p>
-        </div>
-
-        <div class="subnet-strip-wrap">
-          <div id="subnetBody" class="subnet-strip" aria-live="polite"></div>
-        </div>
+      <div class="topbar-search" role="search">
+        <span class="input-icon" aria-hidden="true">⌕</span>
+        <input id="ipInput" type="text" placeholder="検索: 192.168.30.10 / Archer / static" autocomplete="off" aria-label="検索ワード">
+        <button id="clearButton" type="button" class="ghost-button ghost-button-sm">クリア</button>
       </div>
 
-      <div class="content-block">
-        <div class="section-heading section-heading-primary">
-          <div>
-            <h2>hosts 一覧</h2>
-          </div>
-          <p id="resultMeta" class="section-meta">0 件を表示中</p>
-        </div>
+      <button id="addHostBtn" class="btn-add" type="button">+ Add host</button>
+    </div>
+  </nav>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th data-sort="ip">IP</th>
-                <th data-sort="name">名称</th>
-                <th data-sort="role">役割</th>
-                <th data-sort="network_id">ネットワークID</th>
-                <th data-sort="assign">割当</th>
-                <th>メモ</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="resultBody"></tbody>
-          </table>
-        </div>
+  <aside class="sidebar" data-expanded="false" aria-label="ビュー切替">
+    <button type="button" class="sidenav-toggle" id="sidenavToggle" aria-label="セクション一覧を開閉" aria-expanded="false" aria-controls="sidenavList">
+      <svg class="icon-list" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="1.4" fill="none" aria-hidden="true">
+        <circle cx="6" cy="7" r="1.4" fill="currentColor" stroke="none"/>
+        <circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+        <circle cx="6" cy="17" r="1.4" fill="currentColor" stroke="none"/>
+        <line x1="11" y1="7" x2="19" y2="7" stroke-linecap="square"/>
+        <line x1="11" y1="12" x2="19" y2="12" stroke-linecap="square"/>
+        <line x1="11" y1="17" x2="19" y2="17" stroke-linecap="square"/>
+      </svg>
+      <svg class="icon-close" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="1.4" fill="none" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="square"/>
+        <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="square"/>
+      </svg>
+    </button>
+
+    <nav class="sidenav">
+      <p class="sidenav-eyebrow">Sections</p>
+      <ul class="sidenav-list" id="sidenavList" role="list">
+        <li>
+          <button type="button" class="sidenav-link is-active" data-view="subnets" title="サブネット">
+            <span class="sidenav-num">N°01</span>
+            <span class="sidenav-label">サブネット</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="hosts" title="hosts 一覧">
+            <span class="sidenav-num">N°02</span>
+            <span class="sidenav-label">hosts 一覧</span>
+          </button>
+        </li>
+      </ul>
+      <p class="sidenav-foot">— more sections to come —</p>
+    </nav>
+  </aside>
+
+  <main class="app-shell" id="top">
+    <section class="section section-subnets" data-sec="N°01" data-view-section="subnets" aria-label="サブネット一覧">
+      <div class="section-head">
+        <p class="section-label">Subnets</p>
+        <h2 class="section-title">サブネット</h2>
+      </div>
+      <div id="subnetBody" class="subnet-strip" aria-live="polite"></div>
+    </section>
+
+    <section class="section section-hosts is-hidden-view" data-sec="N°02" data-view-section="hosts" aria-label="ホスト一覧">
+      <div class="section-head">
+        <p class="section-label">Hosts</p>
+        <h2 class="section-title">hosts 一覧</h2>
+        <p id="resultMeta" class="section-meta">0 件を表示中</p>
+      </div>
+
+      <div class="filters-strip" aria-label="ネットワーク絞り込み">
+        <span class="filters-strip-label">subnet</span>
+        <div id="networkFilters" class="network-filters"></div>
+        <p id="statusText" class="filters-strip-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="ip">IP</th>
+              <th data-sort="name">名称</th>
+              <th data-sort="role">役割</th>
+              <th data-sort="network_id">ネットワークID</th>
+              <th data-sort="assign">割当</th>
+              <th>メモ</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
       </div>
     </section>
+
+    <footer class="colophon">
+      <p>— END OF REGISTRY —</p>
+    </footer>
   </main>
 
   <!-- ホスト追加・編集モーダル -->

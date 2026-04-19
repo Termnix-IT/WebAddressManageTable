@@ -59,6 +59,7 @@
   renderSubnets(allSubnets);
   buildNetworkIdSelect();
   applyFilters();
+  initViewSwitcher();
 
   // ── イベント: 検索・フィルタ ──
   ipInput.addEventListener("input", function () {
@@ -153,6 +154,61 @@
       if (!confirmDialog.classList.contains("is-hidden")) closeConfirm();
     }
   });
+
+  // ────────────────────────────────────────
+  // サイドバー: ビュー切替
+  // ────────────────────────────────────────
+
+  function initViewSwitcher() {
+    var sidebar = document.querySelector(".sidebar");
+    var toggle = document.getElementById("sidenavToggle");
+    var navLinks = document.querySelectorAll(".sidenav-link");
+    var sections = document.querySelectorAll("[data-view-section]");
+
+    navLinks.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        switchView(btn.getAttribute("data-view"));
+      });
+    });
+
+    if (toggle && sidebar) {
+      toggle.addEventListener("click", function () {
+        var expanded = sidebar.getAttribute("data-expanded") === "true";
+        setSidebarExpanded(!expanded);
+      });
+
+      // クリック外で閉じる（モバイル時の誤操作防止）
+      document.addEventListener("click", function (event) {
+        if (sidebar.getAttribute("data-expanded") !== "true") return;
+        if (sidebar.contains(event.target)) return;
+        setSidebarExpanded(false);
+      });
+
+      // ESCで閉じる
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        if (sidebar.getAttribute("data-expanded") === "true") {
+          setSidebarExpanded(false);
+        }
+      });
+    }
+
+    function setSidebarExpanded(value) {
+      sidebar.setAttribute("data-expanded", value ? "true" : "false");
+      if (toggle) toggle.setAttribute("aria-expanded", value ? "true" : "false");
+    }
+
+    function switchView(view) {
+      navLinks.forEach(function (b) {
+        b.classList.toggle("is-active", b.getAttribute("data-view") === view);
+      });
+      sections.forEach(function (s) {
+        var match = s.getAttribute("data-view-section") === view;
+        s.classList.toggle("is-hidden-view", !match);
+      });
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
 
   // ────────────────────────────────────────
   // フィルタ・ソート
