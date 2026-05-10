@@ -41,6 +41,11 @@
       <div class="topbar-actions">
         <button id="addHostBtn" class="btn-add" type="button">+ Add host</button>
         <button id="addSubnetBtn" class="btn-add" type="button">+ Add subnet</button>
+        <button id="sampleBtn" class="ghost-button ghost-button-sm" type="button">Sample</button>
+        <button id="exportBtn" class="ghost-button ghost-button-sm" type="button">Export</button>
+        <button id="importBtn" class="ghost-button ghost-button-sm" type="button">Import</button>
+        <button id="resetBtn" class="ghost-button ghost-button-sm" type="button">Reset</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
       </div>
     </div>
   </nav>
@@ -65,7 +70,13 @@
       <p class="sidenav-eyebrow">Sections</p>
       <ul class="sidenav-list" id="sidenavList" role="list">
         <li>
-          <button type="button" class="sidenav-link is-active" data-view="subnets" title="サブネット">
+          <button type="button" class="sidenav-link is-active" data-view="dashboard" title="ダッシュボード">
+            <span class="sidenav-num">N°00</span>
+            <span class="sidenav-label">ダッシュボード</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="subnets" title="サブネット">
             <span class="sidenav-num">N°01</span>
             <span class="sidenav-label">サブネット</span>
           </button>
@@ -82,7 +93,29 @@
   </aside>
 
   <main class="app-shell" id="top">
-    <section class="section section-subnets" data-sec="N°01" data-view-section="subnets" aria-label="サブネット一覧">
+    <section class="section section-dashboard" data-sec="N°00" data-view-section="dashboard" aria-label="ダッシュボード">
+      <div class="section-head">
+        <p class="section-label">Dashboard</p>
+        <h2 class="section-title">概況</h2>
+        <p id="dashMeta" class="section-meta"></p>
+      </div>
+
+      <div class="dash-stats" aria-label="サマリ">
+        <div class="dash-stat"><span class="dash-stat-num" id="dashSubnets">0</span><span class="dash-stat-label">Subnets</span></div>
+        <div class="dash-stat"><span class="dash-stat-num" id="dashHosts">0</span><span class="dash-stat-label">Hosts</span></div>
+        <div class="dash-stat"><span class="dash-stat-num" id="dashStatic">0</span><span class="dash-stat-label">Static</span></div>
+        <div class="dash-stat"><span class="dash-stat-num" id="dashDhcp">0</span><span class="dash-stat-label">DHCP</span></div>
+        <div class="dash-stat"><span class="dash-stat-num" id="dashAvg">—</span><span class="dash-stat-label">Avg usage</span></div>
+      </div>
+
+      <div class="dash-health">
+        <h3 class="dash-health-title">Health</h3>
+        <div class="health-cards" id="healthCards" aria-live="polite"></div>
+        <div class="health-details" id="healthDetails"></div>
+      </div>
+    </section>
+
+    <section class="section section-subnets is-hidden-view" data-sec="N°01" data-view-section="subnets" aria-label="サブネット一覧">
       <div class="section-head">
         <p class="section-label">Subnets</p>
         <h2 class="section-title">サブネット</h2>
@@ -98,6 +131,7 @@
               <th>Gateway</th>
               <th>VLAN</th>
               <th>DHCP</th>
+              <th>使用率</th>
               <th>操作</th>
             </tr>
           </thead>
